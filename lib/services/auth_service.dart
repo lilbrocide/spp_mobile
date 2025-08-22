@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+
 class AuthService {
   final String baseUrl = 'http://127.0.0.1:8000/api'; // sesuaikan server
 
@@ -21,11 +22,15 @@ class AuthService {
     return _handleLoginResponse(response);
   }
 
-  Future<Map<String, dynamic>> _handleLoginResponse(http.Response response) async {
+  Future<Map<String, dynamic>> _handleLoginResponse(
+      http.Response response) async {
     final prefs = await SharedPreferences.getInstance();
     final jsonData = jsonDecode(response.body);
 
-    if (response.statusCode == 200 && jsonData['success'] == true) {
+    // cek apakah success bernilai true (boolean) atau "true" (string)
+    final isSuccess = jsonData['success'].toString().toLowerCase() == "true";
+
+    if (response.statusCode == 200 && isSuccess) {
       final accessToken = jsonData['access_token'] ?? '';
       final refreshToken = jsonData['refresh_token'] ?? '';
       final userData = jsonData['data'] ?? {};
@@ -37,7 +42,7 @@ class AuthService {
 
       return {
         'success': true,
-        'message': jsonData['message'],
+        'message': jsonData['message'] ?? 'Login berhasil',
         'data': userData,
       };
     } else {

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
+import 'payment_page.dart'; // ✅ pastikan file PaymentPage sudah ada
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -36,27 +37,37 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Future<void> _login() async {
-    setState(() => _isLoading = true);
+  setState(() => _isLoading = true);
 
-    final result = await _authService.loginStudent(
-      _emailController.text,
-      _nisnController.text,
-      _passwordController.text,
+  final result = await _authService.loginStudent(
+    _emailController.text.trim(),
+    _nisnController.text.trim(),
+    _passwordController.text.trim(),
+  );
+
+  setState(() => _isLoading = false);
+
+  print("RESULT LOGIN: $result");
+
+  if (result['success']) {
+    // ✅ simpan status login
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', true);
+
+    // ✅ langsung navigate ke PaymentPage tanpa SnackBar
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const PaymentPage()),
     );
-
-    if (result['success']) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Login Berhasil ✅")),
-      );
-      // TODO: Navigate ke home page
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result['message'] ?? "Login gagal ❌")),
-      );
-    }
-
-    setState(() => _isLoading = false);
+  } else {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(result['message'] ?? "Login gagal ❌")),
+    );
   }
+}
+
 
   @override
   void dispose() {
@@ -80,7 +91,7 @@ class _LoginPageState extends State<LoginPage>
             animation: _animationController,
             builder: (context, child) {
               return Container(
-                height: height * 0.30, // gradient hanya 30% tinggi layar
+                height: height * 0.40,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -112,8 +123,8 @@ class _LoginPageState extends State<LoginPage>
                 CircleAvatar(
                   radius: 40,
                   backgroundColor: Colors.white,
-                  child: Icon(Icons.school,
-                      size: 40, color: Colors.blueAccent),
+                  child:
+                      Icon(Icons.school, size: 40, color: Colors.blueAccent),
                 ),
                 const SizedBox(height: 12),
 
@@ -130,7 +141,7 @@ class _LoginPageState extends State<LoginPage>
                 const Text(
                   "Simple, Secure, School Payments\n—All in One Click",
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.black54),
+                  style: TextStyle(color: Color.fromARGB(255, 255, 255, 255)),
                 ),
 
                 const SizedBox(height: 40),
@@ -183,8 +194,9 @@ class _LoginPageState extends State<LoginPage>
                       borderRadius: BorderRadius.circular(8),
                     ),
                     suffixIcon: IconButton(
-                      icon: Icon(
-                          _obscureText ? Icons.visibility_off : Icons.visibility),
+                      icon: Icon(_obscureText
+                          ? Icons.visibility_off
+                          : Icons.visibility),
                       onPressed: () {
                         setState(() {
                           _obscureText = !_obscureText;
